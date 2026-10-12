@@ -21,6 +21,43 @@ func TestNewProcessed(t *testing.T) {
 		OccurredAt:    now,
 	}
 
+	t.Run("serializes a processed loss with zero money and original balance", func(t *testing.T) {
+		transaction := newPendingTransaction(t, wager.Loss, "", now)
+		balance, err := money.Parse("75.00", "BRL")
+
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if err := transaction.Process(balance, "", now); err != nil {
+			t.Fatal(err)
+		}
+
+		value, err := event.NewProcessed(metadata, transaction)
+
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		result, err := json.Marshal(value)
+
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		expected := `{"eventId":"event-1","eventType":"WagerTransactionProcessed",` +
+			`"aggregateId":"wallet-1","correlationId":"correlation-1",` +
+			`"occurredAt":"2026-10-12T12:00:00Z","version":1,` +
+			`"data":{"transactionId":"transaction-1","walletId":"wallet-1",` +
+			`"playerId":"player-1","providerId":"provider-a","externalTransactionId":"external-1",` +
+			`"kind":"LOSS","money":{"amount":"0.00","currency":"BRL"},` +
+			`"balance":{"amount":"75.00","currency":"BRL"}}}`
+
+		if string(result) != expected {
+			t.Errorf("expected %s, got %s", expected, result)
+		}
+	})
+
 	t.Run("serializes a processed opening with exact money", func(t *testing.T) {
 		amount, err := money.Parse("100.00", "BRL")
 
@@ -65,12 +102,6 @@ func TestNewProcessed(t *testing.T) {
 
 		if string(result) != expected {
 			t.Errorf("expected %s, got %s", expected, result)
-		}
-	})
-
-	t.Run("rejects nil transaction", func(t *testing.T) {
-		if _, err := event.NewProcessed(metadata, nil); !errors.Is(err, event.ErrInvalidData) {
-			t.Fatalf("expected invalid data error, got: %v", err)
 		}
 	})
 

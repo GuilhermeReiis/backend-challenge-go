@@ -68,6 +68,10 @@ func validateOrigin(s *Snapshot) error {
 			return ErrInvalidIdentity
 		}
 
+		if err := validatePayloadHash(s.PayloadHash); err != nil {
+			return err
+		}
+
 		if !isValidExternalKind(s.Kind) {
 			return ErrInvalidKind
 		}
@@ -83,6 +87,21 @@ func validateOrigin(s *Snapshot) error {
 
 	default:
 		return ErrInvalidTransaction
+	}
+
+	return nil
+}
+
+func validatePayloadHash(hash string) error {
+	if len(hash) != 64 {
+		return ErrInvalidPayloadHash
+	}
+
+	for i := 0; i < len(hash); i++ {
+		if (hash[i] < '0' || hash[i] > '9') &&
+			(hash[i] < 'a' || hash[i] > 'f') {
+			return ErrInvalidPayloadHash
+		}
 	}
 
 	return nil

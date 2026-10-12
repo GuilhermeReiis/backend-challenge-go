@@ -85,6 +85,10 @@ func TestTransitionTimestamps(t *testing.T) {
 				wantErr error
 			}{
 				{
+					name:    "rejects missing timestamp",
+					wantErr: wager.ErrInvalidTime,
+				},
+				{
 					name:    "rejects time before the last update",
 					now:     createdAt.Add(time.Hour),
 					wantErr: wager.ErrInvalidTime,
@@ -235,6 +239,26 @@ func TestNewExternal(t *testing.T) {
 				wantErr: wager.ErrInvalidAmount,
 			},
 			{
+				name: "zero win",
+				kind: wager.Win, amount: 0,
+				wantErr: wager.ErrInvalidAmount,
+			},
+			{
+				name: "zero refund",
+				kind: wager.Refund, amount: 0, reference: "bet-1",
+				wantErr: wager.ErrInvalidAmount,
+			},
+			{
+				name: "zero rollback",
+				kind: wager.Rollback, amount: 0, reference: "bet-1",
+				wantErr: wager.ErrInvalidAmount,
+			},
+			{
+				name: "negative loss",
+				kind: wager.Loss, amount: -1,
+				wantErr: wager.ErrInvalidAmount,
+			},
+			{
 				name: "positive loss",
 				kind: wager.Loss, amount: 100,
 				wantErr: wager.ErrInvalidAmount,
@@ -279,6 +303,46 @@ func TestNewExternal(t *testing.T) {
 }
 
 func TestProcess(t *testing.T) {
+	t.Run("rejects invalid balances without changing state", func(t *testing.T) {
+		now := validSnapshot(t).CreatedAt
+		negative, err := money.New(-1, "BRL")
+
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		usd, err := money.Zero("USD")
+
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		cases := []struct {
+			name    string
+			balance money.Money
+			wantErr error
+		}{
+			{name: "uninitialized money", wantErr: money.ErrInvalidMoney},
+			{name: "negative balance", balance: negative, wantErr: wager.ErrInvalidAmount},
+			{name: "incompatible currency even at zero", balance: usd, wantErr: money.ErrCurrencyMismatch},
+		}
+
+		for _, tc := range cases {
+			t.Run(tc.name, func(t *testing.T) {
+				value := newTransaction(t, validInput(t), now)
+				original := *value
+
+				if err := value.Process(tc.balance, "", now); !errors.Is(err, tc.wantErr) {
+					t.Fatalf("expected error %v, got: %v", tc.wantErr, err)
+				}
+
+				if *value != original {
+					t.Error("expected complete transaction state to remain unchanged")
+				}
+			})
+		}
+	})
+
 	t.Run("stores original processing result", func(t *testing.T) {
 		createdAt := time.Date(2026, 10, 11, 12, 0, 0, 0, time.UTC)
 		processedAt := createdAt.Add(time.Minute)
@@ -307,6 +371,69 @@ func TestProcess(t *testing.T) {
 
 		if !value.ProcessedAt().Equal(processedAt) {
 			t.Error("expected processing timestamp")
+		}
+	})
+}
+
+func TestUninitializedTransactions(t *testing.T) {
+	now := validSnapshot(t).CreatedAt
+	amount := validInput(t).Money
+	transitions := []struct {
+		name  string
+		apply func(*wager.Transaction) error
+	}{
+		{name: "await reference", apply: func(value *wager.Transaction) error { return value.AwaitReference(now) }},
+		{name: "process", apply: func(value *wager.Transaction) error { return value.Process(amount, "", now) }},
+		{name: "reject", apply: func(value *wager.Transaction) error { return value.Reject("REJECTED", now) }},
+		{name: "fail", apply: func(value *wager.Transaction) error { return value.Fail("FAILED", now) }},
+	}
+	cases := []struct {
+		name  string
+		value *wager.Transaction
+	}{
+		{name: "nil transaction"},
+		{name: "zero transaction", value: &wager.Transaction{}},
+	}
+
+	for _, transition := range transitions {
+		t.Run(transition.name, func(t *testing.T) {
+			for _, tc := range cases {
+				t.Run(tc.name, func(t *testing.T) {
+					if err := transition.apply(tc.value); !errors.Is(err, wager.ErrInvalidTransaction) {
+						t.Fatalf("expected invalid transaction error, got: %v", err)
+					}
+
+					if tc.value != nil && *tc.value != (wager.Transaction{}) {
+						t.Error("expected invalid transaction to remain unchanged")
+					}
+				})
+			}
+		})
+	}
+
+	t.Run("external creation rejects uninitialized money", func(t *testing.T) {
+		input := validInput(t)
+		input.Money = money.Money{}
+
+		if _, err := wager.NewExternal(input, now); !errors.Is(err, money.ErrInvalidMoney) {
+			t.Fatalf("expected invalid money error, got: %v", err)
+		}
+	})
+
+	t.Run("opening rejects uninitialized money", func(t *testing.T) {
+		input := wager.OpeningInput{ID: "opening-1", WalletID: "wallet-1", PlayerID: "player-1"}
+
+		if _, err := wager.NewOpening(input, now); !errors.Is(err, money.ErrInvalidMoney) {
+			t.Fatalf("expected invalid money error, got: %v", err)
+		}
+	})
+
+	t.Run("rehydration rejects uninitialized money", func(t *testing.T) {
+		state := validSnapshot(t)
+		state.Money = money.Money{}
+
+		if _, err := wager.Rehydrate(state); !errors.Is(err, money.ErrInvalidMoney) {
+			t.Fatalf("expected invalid money error, got: %v", err)
 		}
 	})
 }
@@ -389,6 +516,55 @@ func TestTerminalStates(t *testing.T) {
 			if !value.UpdatedAt().Equal(finishedAt) {
 				t.Error("expected timestamp to remain unchanged")
 			}
+		})
+	}
+}
+
+func TestFailureCodes(t *testing.T) {
+	now := validSnapshot(t).CreatedAt
+	transitions := []struct {
+		name  string
+		apply func(*wager.Transaction, string, time.Time) error
+	}{
+		{name: "reject", apply: (*wager.Transaction).Reject},
+		{name: "fail", apply: (*wager.Transaction).Fail},
+	}
+
+	for _, transition := range transitions {
+		t.Run(transition.name, func(t *testing.T) {
+			for _, code := range []string{"", " \t"} {
+				t.Run("invalid code "+code, func(t *testing.T) {
+					value := newTransaction(t, validInput(t), now)
+					original := *value
+
+					if err := transition.apply(value, code, now); !errors.Is(err, wager.ErrInvalidFailureCode) {
+						t.Fatalf("expected invalid failure code error, got: %v", err)
+					}
+
+					if *value != original {
+						t.Error("expected complete transaction state to remain unchanged")
+					}
+				})
+			}
+
+			t.Run("preserves a terminal result", func(t *testing.T) {
+				input := validInput(t)
+				value := newTransaction(t, input, now)
+
+				if err := value.Process(input.Money, "", now); err != nil {
+					t.Fatal(err)
+				}
+
+				original := *value
+
+				if err := transition.apply(value, "OTHER_FAILURE", now.Add(time.Minute)); !errors.Is(err, wager.ErrTerminalState) {
+					t.Fatalf("expected terminal state error, got: %v", err)
+				}
+
+				if *value != original {
+					t.Error("expected original result and complete state to remain unchanged")
+				}
+			})
 		})
 	}
 }

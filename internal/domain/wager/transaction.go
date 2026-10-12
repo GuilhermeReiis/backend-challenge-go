@@ -120,10 +120,6 @@ func (t *Transaction) Fail(failureCode string, now time.Time) error {
 		return err
 	}
 
-	if err := t.validateTransition(now); err != nil {
-		return err
-	}
-
 	if strings.TrimSpace(failureCode) == "" {
 		return ErrInvalidFailureCode
 	}

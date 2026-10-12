@@ -52,6 +52,10 @@ func NewExternal(input ExternalInput, now time.Time) (*Transaction, error) {
 		return nil, ErrInvalidTime
 	}
 
+	if err := validatePayloadHash(input.PayloadHash); err != nil {
+		return nil, err
+	}
+
 	if !isValidExternalKind(input.Kind) {
 		return nil, ErrInvalidKind
 	}

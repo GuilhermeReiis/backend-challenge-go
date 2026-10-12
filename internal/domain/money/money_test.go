@@ -66,6 +66,12 @@ func TestParse(t *testing.T) {
 			{name: "scientific notation", amount: "1e2"},
 			{name: "whitespace", amount: "25. 0"},
 			{name: "overflow", amount: "92233720368547758.08"},
+			{name: "missing whole amount", amount: ".25"},
+			{name: "positive sign", amount: "+25.00"},
+			{name: "decimal comma", amount: "25,00"},
+			{name: "multiple decimal separators", amount: "25..0"},
+			{name: "surrounding whitespace", amount: " 25.00 "},
+			{name: "unicode digits", amount: "２5.00"},
 		}
 
 		for _, tc := range cases {
@@ -76,6 +82,46 @@ func TestParse(t *testing.T) {
 			})
 		}
 	})
+}
+
+func TestParseBoundaries(t *testing.T) {
+	cases := []struct {
+		name     string
+		amount   string
+		currency string
+		want     int64
+		wantErr  error
+	}{
+		{name: "zero", amount: "0.00", currency: "BRL"},
+		{name: "one cent", amount: "0.01", currency: "BRL", want: 1},
+		{name: "maximum", amount: "92233720368547758.07", currency: "BRL", want: math.MaxInt64},
+		{name: "USD", amount: "25.05", currency: "USD", want: 2505},
+		{name: "unsupported currency", amount: "25.00", currency: "EUR", wantErr: money.ErrInvalidCurrency},
+		{name: "lowercase currency", amount: "25.00", currency: "brl", wantErr: money.ErrInvalidCurrency},
+		{name: "blank currency", amount: "25.00", wantErr: money.ErrInvalidCurrency},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			value, err := money.Parse(tc.amount, tc.currency)
+
+			if !errors.Is(err, tc.wantErr) {
+				t.Fatalf("expected error %v, got: %v", tc.wantErr, err)
+			}
+
+			if tc.wantErr != nil {
+				if value != (money.Money{}) {
+					t.Error("expected no money on validation failure")
+				}
+
+				return
+			}
+
+			if value.Amount() != tc.want || value.Currency() != tc.currency || value.String() != tc.amount {
+				t.Errorf("expected exact parsing of %s %s, got: %v", tc.amount, tc.currency, value)
+			}
+		})
+	}
 }
 
 func TestAdd(t *testing.T) {

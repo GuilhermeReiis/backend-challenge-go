@@ -2,6 +2,7 @@ package ledger_test
 
 import (
 	"errors"
+	"math"
 	"testing"
 	"time"
 
@@ -162,6 +163,28 @@ func TestNew(t *testing.T) {
 				before:    newMoney(t, 10000, "BRL"),
 				after:     newMoney(t, 7500, "BRL"),
 				wantErr:   money.ErrInvalidMoney,
+			},
+			{
+				name:      "uninitialized balance before",
+				direction: ledger.Credit,
+				amount:    newMoney(t, 2500, "BRL"),
+				after:     newMoney(t, 2500, "BRL"),
+				wantErr:   money.ErrInvalidMoney,
+			},
+			{
+				name:      "uninitialized balance after",
+				direction: ledger.Credit,
+				amount:    newMoney(t, 2500, "BRL"),
+				before:    newMoney(t, 0, "BRL"),
+				wantErr:   money.ErrInvalidMoney,
+			},
+			{
+				name:      "credit overflow",
+				direction: ledger.Credit,
+				amount:    newMoney(t, 1, "BRL"),
+				before:    newMoney(t, math.MaxInt64, "BRL"),
+				after:     newMoney(t, 0, "BRL"),
+				wantErr:   money.ErrOverflow,
 			},
 		}
 

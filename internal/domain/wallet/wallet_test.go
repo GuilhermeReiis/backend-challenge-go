@@ -561,6 +561,12 @@ func TestDebit(t *testing.T) {
 			wantBalance: 10000, wantVersion: 1,
 			wantErr: money.ErrCurrencyMismatch,
 		},
+		{
+			name:   "rejects zero with incompatible currency",
+			amount: 0, currency: "USD",
+			wantBalance: 10000, wantVersion: 1,
+			wantErr: money.ErrCurrencyMismatch,
+		},
 	}
 
 	for _, tc := range cases {
@@ -599,4 +605,60 @@ func TestDebit(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestUninitializedWalletMovements(t *testing.T) {
+	now := time.Date(2026, 10, 12, 12, 0, 0, 0, time.UTC)
+	amount := newMoney(t, 100, "BRL")
+	movements := []struct {
+		name  string
+		apply func(*wallet.Wallet, money.Money, time.Time) error
+	}{
+		{name: "credit", apply: (*wallet.Wallet).Credit},
+		{name: "debit", apply: (*wallet.Wallet).Debit},
+	}
+	cases := []struct {
+		name    string
+		value   *wallet.Wallet
+		wantErr error
+	}{
+		{name: "nil wallet", wantErr: wallet.ErrInvalidWallet},
+		{name: "zero wallet", value: &wallet.Wallet{}, wantErr: wallet.ErrInvalidIdentity},
+	}
+
+	for _, movement := range movements {
+		t.Run(movement.name, func(t *testing.T) {
+			for _, tc := range cases {
+				for _, input := range []money.Money{amount, newMoney(t, 0, "BRL")} {
+					t.Run(tc.name+" amount "+input.String(), func(t *testing.T) {
+						if err := movement.apply(tc.value, input, now); !errors.Is(err, tc.wantErr) {
+							t.Fatalf("expected error %v, got: %v", tc.wantErr, err)
+						}
+
+						if tc.value != nil && *tc.value != (wallet.Wallet{}) {
+							t.Error("expected invalid wallet to remain unchanged")
+						}
+					})
+				}
+			}
+		})
+	}
+
+	t.Run("debit rejects uninitialized money without changing state", func(t *testing.T) {
+		value, err := wallet.New("wallet-1", "player-1", amount, now)
+
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		original := *value
+
+		if err := value.Debit(money.Money{}, now); !errors.Is(err, money.ErrInvalidMoney) {
+			t.Fatalf("expected invalid money error, got: %v", err)
+		}
+
+		if *value != original {
+			t.Error("expected complete wallet state to remain unchanged")
+		}
+	})
 }

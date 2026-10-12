@@ -66,6 +66,8 @@ Models GORM representarão as colunas do schema. Mappers converterão models em 
 
 Uma operação financeira deverá confirmar estado da transação, saldo, ledger, inbox quando aplicável e outbox na mesma transação SQL. A Unit of Work delimitará esse commit. Um resultado de rejeição de negócio deverá ser persistido e confirmado; uma falha de infraestrutura durante o tratamento deverá provocar rollback.
 
+`PayloadHash` de operações externas exige 64 caracteres hexadecimais minúsculos, sem normalização. `NewExternal` e `Rehydrate` compartilham a validação desse formato, compatível com a constraint SQL; formatos inválidos retornam `ErrInvalidPayloadHash`, e metadados obrigatórios vazios continuam retornando `ErrInvalidIdentity`. OPENING interno não possui hash externo. O cálculo canônico do hash será implementado com o comando comum aos services.
+
 O repository adquirirá lock por carteira com `SELECT FOR UPDATE` dentro dessa transação. Não haverá lock global ou garantia baseada apenas na memória do processo. Consultas e escritas receberão `context.Context`. Updates selecionarão explicitamente as colunas, incluindo valores zero e campos que precisem ser limpos.
 
 As migrations SQL continuarão sendo a fonte do schema, incluindo constraints, índices e triggers. A inicialização da aplicação não executará `AutoMigrate`. O ledger manterá somente operações de leitura e inserção. Publicação de eventos ficará no worker da outbox e ocorrerá depois do commit.
