@@ -42,6 +42,7 @@ func TestRehydrate(t *testing.T) {
 		state.ProcessedAt = state.UpdatedAt
 
 		balance, err := money.Parse("75.00", "BRL")
+
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -49,6 +50,7 @@ func TestRehydrate(t *testing.T) {
 		state.ResultBalance = balance
 
 		value, err := wager.Rehydrate(state)
+
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -76,6 +78,7 @@ func TestRehydrate(t *testing.T) {
 		}
 
 		result, available := value.ResultBalance()
+
 		if !available || result != balance {
 			t.Error("expected original processing balance")
 		}
@@ -86,8 +89,7 @@ func TestRehydrate(t *testing.T) {
 			t.Error("expected persisted timestamps")
 		}
 
-		err = value.Process(balance, "", state.UpdatedAt.Add(time.Minute))
-		if !errors.Is(err, wager.ErrTerminalState) {
+		if err := value.Process(balance, "", state.UpdatedAt.Add(time.Minute)); !errors.Is(err, wager.ErrTerminalState) {
 			t.Fatalf("expected terminal state error, got: %v", err)
 		}
 	})
@@ -121,6 +123,7 @@ func TestRehydrate(t *testing.T) {
 				state.FailureCode = tc.failureCode
 
 				value, err := wager.Rehydrate(state)
+
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -136,6 +139,7 @@ func TestRehydrate(t *testing.T) {
 				}
 
 				_, available := value.ResultBalance()
+
 				if available {
 					t.Error("expected no successful processing balance")
 				}
@@ -197,6 +201,7 @@ func TestRehydrate(t *testing.T) {
 				tc.change(&state)
 
 				value, err := wager.Rehydrate(state)
+
 				if !errors.Is(err, tc.wantErr) {
 					t.Fatalf("expected error %v, got: %v", tc.wantErr, err)
 				}
@@ -223,6 +228,7 @@ func TestRehydrate(t *testing.T) {
 		state.ResultBalance = state.Money
 
 		value, err := wager.Rehydrate(state)
+
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -243,6 +249,7 @@ func TestRehydrate(t *testing.T) {
 		}
 
 		result, available := value.ResultBalance()
+
 		if !available || result != state.ResultBalance {
 			t.Error("expected original opening balance")
 		}
@@ -277,6 +284,7 @@ func TestRehydrate(t *testing.T) {
 				}
 
 				value, err := wager.Rehydrate(state)
+
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -329,6 +337,7 @@ func TestRehydrate(t *testing.T) {
 				state.ProcessedAt = state.UpdatedAt
 
 				balance, err := money.New(tc.amount, tc.currency)
+
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -336,6 +345,7 @@ func TestRehydrate(t *testing.T) {
 				state.ResultBalance = balance
 
 				value, err := wager.Rehydrate(state)
+
 				if !errors.Is(err, tc.wantErr) {
 					t.Fatalf("expected error %v, got: %v", tc.wantErr, err)
 				}
@@ -355,12 +365,12 @@ func TestRehydrate(t *testing.T) {
 				state.FailureCode = "ORIGINAL_FAILURE"
 
 				value, err := wager.Rehydrate(state)
+
 				if err != nil {
 					t.Fatal(err)
 				}
 
-				err = value.Reject("OTHER_FAILURE", state.UpdatedAt.Add(time.Minute))
-				if !errors.Is(err, wager.ErrTerminalState) {
+				if err := value.Reject("OTHER_FAILURE", state.UpdatedAt.Add(time.Minute)); !errors.Is(err, wager.ErrTerminalState) {
 					t.Fatalf("expected terminal state error, got: %v", err)
 				}
 

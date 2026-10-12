@@ -23,6 +23,7 @@ func TestNewProcessed(t *testing.T) {
 
 	t.Run("serializes a processed opening with exact money", func(t *testing.T) {
 		amount, err := money.Parse("100.00", "BRL")
+
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -33,21 +34,23 @@ func TestNewProcessed(t *testing.T) {
 			PlayerID: "player-1",
 			Money:    amount,
 		}, now)
+
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		err = transaction.Process(amount, "", now)
-		if err != nil {
+		if err := transaction.Process(amount, "", now); err != nil {
 			t.Fatal(err)
 		}
 
 		value, err := event.NewProcessed(metadata, transaction)
+
 		if err != nil {
 			t.Fatal(err)
 		}
 
 		result, err := json.Marshal(value)
+
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -66,14 +69,14 @@ func TestNewProcessed(t *testing.T) {
 	})
 
 	t.Run("rejects nil transaction", func(t *testing.T) {
-		_, err := event.NewProcessed(metadata, nil)
-		if !errors.Is(err, event.ErrInvalidData) {
+		if _, err := event.NewProcessed(metadata, nil); !errors.Is(err, event.ErrInvalidData) {
 			t.Fatalf("expected invalid data error, got: %v", err)
 		}
 	})
 
 	t.Run("rejects pending transaction", func(t *testing.T) {
 		amount, err := money.Parse("25.00", "BRL")
+
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -91,12 +94,12 @@ func TestNewProcessed(t *testing.T) {
 			Kind:                  wager.Bet,
 			Money:                 amount,
 		}, now)
+
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		_, err = event.NewProcessed(metadata, transaction)
-		if !errors.Is(err, event.ErrInvalidData) {
+		if _, err := event.NewProcessed(metadata, transaction); !errors.Is(err, event.ErrInvalidData) {
 			t.Fatalf("expected invalid data error, got: %v", err)
 		}
 	})

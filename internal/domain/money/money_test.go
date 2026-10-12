@@ -12,6 +12,7 @@ import (
 func TestNew(t *testing.T) {
 	t.Run("creates money with valid amount and currency", func(t *testing.T) {
 		value, err := money.New(2500, "BRL")
+
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -26,9 +27,7 @@ func TestNew(t *testing.T) {
 	})
 
 	t.Run("rejects invalid currency", func(t *testing.T) {
-		_, err := money.New(2500, "")
-
-		if !errors.Is(err, money.ErrInvalidCurrency) {
+		if _, err := money.New(2500, ""); !errors.Is(err, money.ErrInvalidCurrency) {
 			t.Fatalf("expected invalid currency error, got: %v", err)
 		}
 	})
@@ -37,6 +36,7 @@ func TestNew(t *testing.T) {
 func TestParse(t *testing.T) {
 	t.Run("converts decimal amount to minor units", func(t *testing.T) {
 		value, err := money.Parse("25.00", "BRL")
+
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -70,9 +70,7 @@ func TestParse(t *testing.T) {
 
 		for _, tc := range cases {
 			t.Run(tc.name, func(t *testing.T) {
-				_, err := money.Parse(tc.amount, "BRL")
-
-				if !errors.Is(err, money.ErrInvalidAmount) {
+				if _, err := money.Parse(tc.amount, "BRL"); !errors.Is(err, money.ErrInvalidAmount) {
 					t.Fatalf("expected invalid amount error, got: %v", err)
 				}
 			})
@@ -83,16 +81,19 @@ func TestParse(t *testing.T) {
 func TestAdd(t *testing.T) {
 	t.Run("adds amounts without changing operands", func(t *testing.T) {
 		left, err := money.New(2500, "BRL")
+
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
 		right, err := money.New(1000, "BRL")
+
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
 		result, err := left.Add(right)
+
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -112,23 +113,25 @@ func TestAdd(t *testing.T) {
 
 	t.Run("rejects incompatible currencies", func(t *testing.T) {
 		left, err := money.New(2500, "BRL")
+
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
 		right, err := money.New(1000, "USD")
+
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		_, err = left.Add(right)
-		if !errors.Is(err, money.ErrCurrencyMismatch) {
+		if _, err := left.Add(right); !errors.Is(err, money.ErrCurrencyMismatch) {
 			t.Fatalf("expected currency mismatch error, got: %v", err)
 		}
 	})
 
 	t.Run("rejects uninitialized money", func(t *testing.T) {
 		valid, err := money.New(1000, "BRL")
+
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -144,8 +147,7 @@ func TestAdd(t *testing.T) {
 
 		for _, tc := range cases {
 			t.Run(tc.name, func(t *testing.T) {
-				_, err := tc.left.Add(tc.right)
-				if !errors.Is(err, money.ErrInvalidMoney) {
+				if _, err := tc.left.Add(tc.right); !errors.Is(err, money.ErrInvalidMoney) {
 					t.Fatalf("expected invalid money error, got: %v", err)
 				}
 			})
@@ -165,17 +167,18 @@ func TestAdd(t *testing.T) {
 		for _, tc := range cases {
 			t.Run(tc.name, func(t *testing.T) {
 				left, err := money.New(tc.left, "BRL")
+
 				if err != nil {
 					t.Fatalf("unexpected error: %v", err)
 				}
 
 				right, err := money.New(tc.right, "BRL")
+
 				if err != nil {
 					t.Fatalf("unexpected error: %v", err)
 				}
 
-				_, err = left.Add(right)
-				if !errors.Is(err, money.ErrOverflow) {
+				if _, err := left.Add(right); !errors.Is(err, money.ErrOverflow) {
 					t.Fatalf("expected overflow error, got: %v", err)
 				}
 			})
@@ -186,16 +189,19 @@ func TestAdd(t *testing.T) {
 func TestSub(t *testing.T) {
 	t.Run("subtracts amounts without changing operands", func(t *testing.T) {
 		left, err := money.New(2500, "BRL")
+
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
 		right, err := money.New(1000, "BRL")
+
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
 		result, err := left.Sub(right)
+
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -215,16 +221,19 @@ func TestSub(t *testing.T) {
 
 	t.Run("allows negative results", func(t *testing.T) {
 		left, err := money.New(1000, "BRL")
+
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
 		right, err := money.New(2500, "BRL")
+
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
 		result, err := left.Sub(right)
+
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -236,23 +245,25 @@ func TestSub(t *testing.T) {
 
 	t.Run("rejects incompatible currencies", func(t *testing.T) {
 		left, err := money.New(2500, "BRL")
+
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
 		right, err := money.New(1000, "USD")
+
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		_, err = left.Sub(right)
-		if !errors.Is(err, money.ErrCurrencyMismatch) {
+		if _, err := left.Sub(right); !errors.Is(err, money.ErrCurrencyMismatch) {
 			t.Fatalf("expected currency mismatch error, got: %v", err)
 		}
 	})
 
 	t.Run("rejects uninitialized money", func(t *testing.T) {
 		valid, err := money.New(1000, "BRL")
+
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -268,9 +279,7 @@ func TestSub(t *testing.T) {
 
 		for _, tc := range cases {
 			t.Run(tc.name, func(t *testing.T) {
-				_, err := tc.left.Sub(tc.right)
-
-				if !errors.Is(err, money.ErrInvalidMoney) {
+				if _, err := tc.left.Sub(tc.right); !errors.Is(err, money.ErrInvalidMoney) {
 					t.Fatalf("expected invalid money error, got: %v", err)
 				}
 			})
@@ -290,17 +299,18 @@ func TestSub(t *testing.T) {
 		for _, tc := range cases {
 			t.Run(tc.name, func(t *testing.T) {
 				left, err := money.New(tc.left, "BRL")
+
 				if err != nil {
 					t.Fatalf("unexpected error: %v", err)
 				}
 
 				right, err := money.New(tc.right, "BRL")
+
 				if err != nil {
 					t.Fatalf("unexpected error: %v", err)
 				}
 
-				_, err = left.Sub(right)
-				if !errors.Is(err, money.ErrOverflow) {
+				if _, err := left.Sub(right); !errors.Is(err, money.ErrOverflow) {
 					t.Fatalf("expected overflow error, got: %v", err)
 				}
 			})
@@ -311,6 +321,7 @@ func TestSub(t *testing.T) {
 func TestZero(t *testing.T) {
 	t.Run("creates zero with the requested currency", func(t *testing.T) {
 		value, err := money.Zero("BRL")
+
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -325,9 +336,7 @@ func TestZero(t *testing.T) {
 	})
 
 	t.Run("rejects invalid currency", func(t *testing.T) {
-		_, err := money.Zero("")
-
-		if !errors.Is(err, money.ErrInvalidCurrency) {
+		if _, err := money.Zero(""); !errors.Is(err, money.ErrInvalidCurrency) {
 			t.Fatalf("expected invalid currency error, got: %v", err)
 		}
 	})
@@ -351,6 +360,7 @@ func TestNeg(t *testing.T) {
 				original := newMoney(t, tc.amount, "BRL")
 
 				result, err := original.Neg()
+
 				if err != nil {
 					t.Fatalf("unexpected error: %v", err)
 				}
@@ -373,16 +383,13 @@ func TestNeg(t *testing.T) {
 	t.Run("rejects overflow", func(t *testing.T) {
 		value := newMoney(t, math.MinInt64, "BRL")
 
-		_, err := value.Neg()
-		if !errors.Is(err, money.ErrOverflow) {
+		if _, err := value.Neg(); !errors.Is(err, money.ErrOverflow) {
 			t.Fatalf("expected overflow error, got: %v", err)
 		}
 	})
 
 	t.Run("rejects uninitialized money", func(t *testing.T) {
-		_, err := (money.Money{}).Neg()
-
-		if !errors.Is(err, money.ErrInvalidMoney) {
+		if _, err := (money.Money{}).Neg(); !errors.Is(err, money.ErrInvalidMoney) {
 			t.Fatalf("expected invalid money error, got: %v", err)
 		}
 	})
@@ -409,6 +416,7 @@ func TestCompare(t *testing.T) {
 				right := newMoney(t, tc.right, "BRL")
 
 				result, err := left.Compare(right)
+
 				if err != nil {
 					t.Fatalf("unexpected error: %v", err)
 				}
@@ -424,8 +432,7 @@ func TestCompare(t *testing.T) {
 		left := newMoney(t, 2500, "BRL")
 		right := newMoney(t, 2500, "USD")
 
-		_, err := left.Compare(right)
-		if !errors.Is(err, money.ErrCurrencyMismatch) {
+		if _, err := left.Compare(right); !errors.Is(err, money.ErrCurrencyMismatch) {
 			t.Fatalf("expected currency mismatch error, got: %v", err)
 		}
 	})
@@ -444,9 +451,7 @@ func TestCompare(t *testing.T) {
 
 		for _, tc := range cases {
 			t.Run(tc.name, func(t *testing.T) {
-				_, err := tc.left.Compare(tc.right)
-
-				if !errors.Is(err, money.ErrInvalidMoney) {
+				if _, err := tc.left.Compare(tc.right); !errors.Is(err, money.ErrInvalidMoney) {
 					t.Fatalf("expected invalid money error, got: %v", err)
 				}
 			})
@@ -519,6 +524,7 @@ func TestMarshalJSON(t *testing.T) {
 				value := newMoney(t, tc.amount, "BRL")
 
 				result, err := json.Marshal(value)
+
 				if err != nil {
 					t.Fatalf("unexpected error: %v", err)
 				}
@@ -531,9 +537,7 @@ func TestMarshalJSON(t *testing.T) {
 	})
 
 	t.Run("rejects uninitialized money", func(t *testing.T) {
-		_, err := json.Marshal(money.Money{})
-
-		if !errors.Is(err, money.ErrInvalidMoney) {
+		if _, err := json.Marshal(money.Money{}); !errors.Is(err, money.ErrInvalidMoney) {
 			t.Fatalf("expected invalid money error, got: %v", err)
 		}
 	})
@@ -543,6 +547,7 @@ func newMoney(t *testing.T, amount int64, currency string) money.Money {
 	t.Helper()
 
 	value, err := money.New(amount, currency)
+
 	if err != nil {
 		t.Fatalf("failed to create test money: %v", err)
 	}

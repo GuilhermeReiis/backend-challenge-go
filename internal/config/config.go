@@ -24,8 +24,7 @@ type Database struct {
 }
 
 func Load() (Config, error) {
-	err := godotenv.Load()
-	if err != nil && !errors.Is(err, os.ErrNotExist) {
+	if err := godotenv.Load(); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return Config{}, errors.New("config: could not read .env")
 	}
 
@@ -45,6 +44,7 @@ func Load() (Config, error) {
 	}
 
 	port, err := strconv.Atoi(os.Getenv("APP_DB_PORT"))
+
 	if err != nil || port < 1 || port > 65535 {
 		return Config{}, errors.New("config: APP_DB_PORT must be between 1 and 65535")
 	}

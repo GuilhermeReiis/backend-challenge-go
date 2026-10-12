@@ -18,12 +18,16 @@ func NewOutboxRepository(db *gorm.DB) *OutboxRepository {
 
 func (r *OutboxRepository) Append(ctx context.Context, value service.OutboxEvent) error {
 	db, err := r.session.connection(ctx, true)
+
 	if err != nil {
 		return err
 	}
+
 	model, err := mapper.OutboxToModel(value)
+
 	if err != nil {
 		return err
 	}
+
 	return repositoryError(db.Create(&model).Error)
 }

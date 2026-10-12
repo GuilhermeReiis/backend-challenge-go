@@ -11,28 +11,23 @@ func validateSnapshot(state *Snapshot) error {
 		return ErrInvalidTransaction
 	}
 
-	err := validateIdentity(state)
-	if err != nil {
+	if err := validateIdentity(state); err != nil {
 		return err
 	}
 
-	err = validateTimestamps(state)
-	if err != nil {
+	if err := validateTimestamps(state); err != nil {
 		return err
 	}
 
-	err = validateOrigin(state)
-	if err != nil {
+	if err := validateOrigin(state); err != nil {
 		return err
 	}
 
-	err = validateAmount(state.Kind, state.Money)
-	if err != nil {
+	if err := validateAmount(state.Kind, state.Money); err != nil {
 		return err
 	}
 
-	err = validateReferences(state)
-	if err != nil {
+	if err := validateReferences(state); err != nil {
 		return err
 	}
 
@@ -124,8 +119,7 @@ func validateReferences(s *Snapshot) error {
 	external := s.ReferenceExternalTransactionID
 	internal := s.ReferenceTransactionID
 
-	err := validateExternalReference(s.Kind, external)
-	if err != nil {
+	if err := validateExternalReference(s.Kind, external); err != nil {
 		return err
 	}
 
@@ -205,8 +199,7 @@ func validateProcessed(s *Snapshot) error {
 		return ErrInvalidTime
 	}
 
-	_, err := s.Money.Compare(s.ResultBalance)
-	if err != nil {
+	if _, err := s.Money.Compare(s.ResultBalance); err != nil {
 		return err
 	}
 

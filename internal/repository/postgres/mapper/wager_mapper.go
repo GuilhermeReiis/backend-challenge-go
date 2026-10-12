@@ -8,16 +8,21 @@ import (
 
 func WagerFromModel(model models.Wager) (*wager.Transaction, error) {
 	amount, err := money.New(model.AmountMinor, model.Currency)
+
 	if err != nil {
 		return nil, err
 	}
+
 	var result money.Money
+
 	if model.ResultBalanceMinor != nil {
 		result, err = money.New(*model.ResultBalanceMinor, model.Currency)
+
 		if err != nil {
 			return nil, err
 		}
 	}
+
 	return wager.Rehydrate(wager.Snapshot{
 		ID: model.ID, Origin: wager.Origin(model.Origin), Kind: wager.Kind(model.Kind), Status: wager.Status(model.Status),
 		WalletID: model.WalletID, PlayerID: model.PlayerID, Money: amount,
@@ -34,6 +39,7 @@ func WagerToModel(value *wager.Transaction) (models.Wager, error) {
 	if value == nil {
 		return models.Wager{}, wager.ErrInvalidTransaction
 	}
+
 	model := models.Wager{
 		ID: value.ID(), Origin: string(value.Origin()), Kind: string(value.Kind()), Status: string(value.Status()),
 		WalletID: value.WalletID(), PlayerID: value.PlayerID(), Currency: value.Money().Currency(), AmountMinor: value.Money().Amount(),
@@ -45,13 +51,15 @@ func WagerToModel(value *wager.Transaction) (models.Wager, error) {
 		ProcessedAt: OptionalTime(value.ProcessedAt()), CreatedAt: databaseTime(value.CreatedAt()), UpdatedAt: databaseTime(value.UpdatedAt()),
 	}
 	result, available := value.ResultBalance()
+
 	if available {
 		minor := result.Amount()
 		model.ResultBalanceMinor = &minor
 	}
-	_, err := WagerFromModel(model)
-	if err != nil {
+
+	if _, err := WagerFromModel(model); err != nil {
 		return models.Wager{}, err
 	}
+
 	return model, nil
 }

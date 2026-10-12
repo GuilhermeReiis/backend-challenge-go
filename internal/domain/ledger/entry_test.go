@@ -13,6 +13,7 @@ func newMoney(t *testing.T, amount int64, currency string) money.Money {
 	t.Helper()
 
 	value, err := money.New(amount, currency)
+
 	if err != nil {
 		t.Fatalf("failed to create test money: %v", err)
 	}
@@ -65,6 +66,7 @@ func TestNew(t *testing.T) {
 					newMoney(t, tc.after, "BRL"),
 					now,
 				)
+
 				if err != nil {
 					t.Fatalf("unexpected error: %v", err)
 				}
@@ -165,12 +167,10 @@ func TestNew(t *testing.T) {
 
 		for _, tc := range cases {
 			t.Run(tc.name, func(t *testing.T) {
-				_, err := ledger.New(
+				if _, err := ledger.New(
 					"entry-1", "wallet-1", "transaction-1",
 					tc.direction, tc.amount, tc.before, tc.after, now,
-				)
-
-				if !errors.Is(err, tc.wantErr) {
+				); !errors.Is(err, tc.wantErr) {
 					t.Fatalf("expected error %v, got: %v", tc.wantErr, err)
 				}
 			})

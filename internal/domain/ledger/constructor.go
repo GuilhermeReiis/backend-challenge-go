@@ -58,6 +58,7 @@ func New(
 	}
 
 	comparison, err := expectedBalance.Compare(balanceAfter)
+
 	if err != nil {
 		return Entry{}, err
 	}

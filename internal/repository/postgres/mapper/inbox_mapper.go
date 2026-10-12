@@ -21,6 +21,7 @@ func InboxToModel(message service.InboxMessage) (models.Inbox, error) {
 	if message.ReceivedAt.IsZero() {
 		return models.Inbox{}, errors.New("postgres: inbox received time is required")
 	}
+
 	return models.Inbox{
 		ConsumerName: message.ConsumerName,
 		MessageID:    message.MessageID,

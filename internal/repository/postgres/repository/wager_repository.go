@@ -22,24 +22,31 @@ func NewWagerRepository(db *gorm.DB) *WagerRepository {
 
 func (r *WagerRepository) Create(ctx context.Context, value *wager.Transaction) error {
 	db, err := r.session.connection(ctx, true)
+
 	if err != nil {
 		return err
 	}
+
 	model, err := mapper.WagerToModel(value)
+
 	if err != nil {
 		return err
 	}
+
 	if value.Status() == wager.PendingReference {
 		return wager.ErrInvalidTransaction
 	}
+
 	var matches int64
-	err = db.Model(&models.Wallet{}).Where("id = ? AND player_id = ? AND currency = ?", model.WalletID, model.PlayerID, model.Currency).Count(&matches).Error
-	if err != nil {
+
+	if err := db.Model(&models.Wallet{}).Where("id = ? AND player_id = ? AND currency = ?", model.WalletID, model.PlayerID, model.Currency).Count(&matches).Error; err != nil {
 		return repositoryError(err)
 	}
+
 	if matches != 1 {
 		return wager.ErrInvalidIdentity
 	}
+
 	return repositoryError(db.Create(&model).Error)
 }
 
@@ -57,14 +64,17 @@ func (r *WagerRepository) FindByIdempotencyKey(ctx context.Context, providerID s
 
 func (r *WagerRepository) find(ctx context.Context, query string, args ...any) (*wager.Transaction, error) {
 	db, err := r.session.connection(ctx, false)
+
 	if err != nil {
 		return nil, err
 	}
+
 	var model models.Wager
-	err = db.Where(query, args...).Take(&model).Error
-	if err != nil {
+
+	if err := db.Where(query, args...).Take(&model).Error; err != nil {
 		return nil, repositoryError(err)
 	}
+
 	return mapper.WagerFromModel(model)
 }
 
@@ -72,6 +82,7 @@ func (r *WagerRepository) Update(ctx context.Context, value *wager.Transaction) 
 	if value != nil && value.Status() == wager.PendingReference {
 		return wager.ErrInvalidTransaction
 	}
+
 	return r.update(ctx, value, nil)
 }
 
@@ -79,53 +90,68 @@ func (r *WagerRepository) SavePendingReference(ctx context.Context, value *wager
 	if value == nil || value.Status() != wager.PendingReference {
 		return wager.ErrInvalidTransaction
 	}
+
 	if schedule.Attempts < 0 || schedule.Attempts > math.MaxInt32 || schedule.NextAttemptAt.IsZero() ||
 		schedule.NextAttemptAt.Before(value.UpdatedAt()) || !schedule.ExpiresAt.After(value.CreatedAt()) {
 		return wager.ErrInvalidTime
 	}
+
 	return r.update(ctx, value, &schedule)
 }
 
 func (r *WagerRepository) update(ctx context.Context, value *wager.Transaction, schedule *service.ReferenceSchedule) error {
 	db, err := r.session.connection(ctx, true)
+
 	if err != nil {
 		return err
 	}
+
 	model, err := mapper.WagerToModel(value)
+
 	if err != nil {
 		return err
 	}
+
 	var current models.Wager
-	err = db.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", model.ID).Take(&current).Error
-	if err != nil {
+
+	if err := db.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", model.ID).Take(&current).Error; err != nil {
 		return repositoryError(err)
 	}
+
 	if current.Status == string(wager.Processed) || current.Status == string(wager.Rejected) || current.Status == string(wager.Failed) {
 		return wager.ErrTerminalState
 	}
+
 	if current.Status == string(wager.PendingReference) && model.Status == string(wager.Pending) {
 		return wager.ErrInvalidTransaction
 	}
+
 	if !sameWagerIdentity(current, model) || model.UpdatedAt.Before(current.UpdatedAt) {
 		return wager.ErrInvalidTransaction
 	}
+
 	updates := map[string]any{
 		"status": model.Status, "reference_transaction_id": model.ReferenceTransactionID,
 		"failure_code": model.FailureCode, "result_balance_minor": model.ResultBalanceMinor,
 		"processed_at": model.ProcessedAt, "updated_at": model.UpdatedAt, "next_attempt_at": nil,
 	}
+
 	if schedule != nil {
 		updates["attempts"] = schedule.Attempts
 		updates["next_attempt_at"] = mapper.OptionalTime(schedule.NextAttemptAt)
 		updates["expires_at"] = mapper.OptionalTime(schedule.ExpiresAt)
 	}
+
 	result := db.Model(&models.Wager{}).Where("id = ? AND status IN ?", model.ID, []string{string(wager.Pending), string(wager.PendingReference)}).Updates(updates)
+
 	if result.Error != nil {
 		return repositoryError(result.Error)
 	}
+
 	if result.RowsAffected != 1 {
 		return service.ErrConcurrentUpdate
 	}
+
 	return nil
 }
 

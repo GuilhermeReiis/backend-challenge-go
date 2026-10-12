@@ -37,6 +37,7 @@ func Parse(amount string, currency string) (Money, error) {
 	}
 
 	minorUnits, err := strconv.ParseInt(digits, 10, 64)
+
 	if err != nil {
 		return Money{}, ErrInvalidAmount
 	}

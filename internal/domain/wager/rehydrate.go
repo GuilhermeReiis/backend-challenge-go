@@ -30,8 +30,7 @@ type Snapshot struct {
 }
 
 func Rehydrate(state Snapshot) (*Transaction, error) {
-	err := validateSnapshot(&state)
-	if err != nil {
+	if err := validateSnapshot(&state); err != nil {
 		return nil, err
 	}
 

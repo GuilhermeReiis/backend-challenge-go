@@ -22,6 +22,7 @@ func (u *UnitOfWork) Execute(ctx context.Context, operation func(service.Reposit
 	if operation == nil {
 		return errors.New("postgres: transaction operation is required")
 	}
+
 	err := u.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		session := newSession(tx, true)
 		defer session.active.Store(false)
@@ -33,10 +34,11 @@ func (u *UnitOfWork) Execute(ctx context.Context, operation func(service.Reposit
 			Inbox:   &InboxRepository{session: session},
 			Outbox:  &OutboxRepository{session: session},
 		}
-		err := operation(repositories)
-		if err != nil {
+
+		if err := operation(repositories); err != nil {
 			return err
 		}
+
 		return ctx.Err()
 	})
 	return repositoryError(err)

@@ -14,10 +14,9 @@ func Rehydrate(
 	createdAt time.Time,
 	updatedAt time.Time,
 ) (*Wallet, error) {
-	err := validateState(
+	if err := validateState(
 		id, playerID, balance, version, createdAt, updatedAt,
-	)
-	if err != nil {
+	); err != nil {
 		return nil, err
 	}
 

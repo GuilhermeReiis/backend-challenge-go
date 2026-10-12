@@ -21,11 +21,13 @@ func NewDatabase(lifecycle fx.Lifecycle, cfg config.Config) (*gorm.DB, error) {
 		DisableAutomaticPing: true,
 		Logger:               logger.Default.LogMode(logger.Silent),
 	})
+
 	if err != nil {
 		return nil, errors.New("postgres: could not initialize database connection")
 	}
 
 	pool, err := db.DB()
+
 	if err != nil {
 		return nil, errors.New("postgres: could not obtain database pool")
 	}
@@ -40,8 +42,7 @@ func NewDatabase(lifecycle fx.Lifecycle, cfg config.Config) (*gorm.DB, error) {
 			pingCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 			defer cancel()
 
-			err := pool.PingContext(pingCtx)
-			if err != nil {
+			if err := pool.PingContext(pingCtx); err != nil {
 				pool.Close()
 				return errors.New("postgres: connection check failed")
 			}

@@ -26,10 +26,11 @@ func (s *repositorySession) connection(ctx context.Context, write bool) (*gorm.D
 	if !s.active.Load() || (write && !s.transaction) {
 		return nil, service.ErrTransactionRequired
 	}
-	err := ctx.Err()
-	if err != nil {
+
+	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
+
 	return s.db.WithContext(ctx), nil
 }
 
@@ -37,10 +38,13 @@ func repositoryError(err error) error {
 	if err == nil {
 		return nil
 	}
+
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return errors.Join(service.ErrNotFound, err)
 	}
+
 	var pgError *pgconn.PgError
+
 	if errors.As(err, &pgError) {
 		switch pgError.Code {
 		case "23505":
@@ -49,5 +53,6 @@ func repositoryError(err error) error {
 			return errors.Join(service.ErrConcurrentUpdate, err)
 		}
 	}
+
 	return err
 }

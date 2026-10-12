@@ -20,6 +20,7 @@ func TestDatabaseLifecycle(t *testing.T) {
 	t.Run("connects with the application role and closes on shutdown", func(t *testing.T) {
 		filename := filepath.Join("..", "..", "..", ".env")
 		values, err := godotenv.Read(filename)
+
 		if err != nil && !os.IsNotExist(err) {
 			t.Fatal("could not read integration environment")
 		}
@@ -29,9 +30,11 @@ func TestDatabaseLifecycle(t *testing.T) {
 			"APP_DB_USER", "APP_DB_PASSWORD", "APP_DB_SSLMODE",
 		} {
 			value, present := os.LookupEnv(name)
+
 			if !present {
 				value = values[name]
 			}
+
 			t.Setenv(name, value)
 		}
 
@@ -44,10 +47,10 @@ func TestDatabaseLifecycle(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
-		err = app.Start(ctx)
-		if err != nil {
+		if err := app.Start(ctx); err != nil {
 			t.Fatal(err)
 		}
+
 		t.Cleanup(func() {
 			stopCtx, stopCancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer stopCancel()
@@ -58,32 +61,35 @@ func TestDatabaseLifecycle(t *testing.T) {
 			User     string
 			Database string
 		}
-		err = db.WithContext(ctx).Raw(
+
+		if err := db.WithContext(ctx).Raw(
 			"SELECT current_user AS \"user\", current_database() AS database",
-		).Scan(&identity).Error
-		if err != nil {
+		).Scan(&identity).Error; err != nil {
 			t.Fatal("could not verify database identity")
 		}
+
 		if identity.User != "wagering_app" || identity.Database != os.Getenv("POSTGRES_DB") {
 			t.Fatal("expected a connection with the application role and configured database")
 		}
 
 		pool, err := db.DB()
+
 		if err != nil {
 			t.Fatal(err)
 		}
+
 		if pool.Stats().MaxOpenConnections != 10 {
 			t.Error("expected the configured connection pool limit")
 		}
 
 		stopCtx, stopCancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer stopCancel()
-		err = app.Stop(stopCtx)
-		if err != nil {
+
+		if err := app.Stop(stopCtx); err != nil {
 			t.Fatal(err)
 		}
-		err = pool.PingContext(ctx)
-		if err == nil || err.Error() != "sql: database is closed" {
+
+		if err := pool.PingContext(ctx); err == nil || err.Error() != "sql: database is closed" {
 			t.Fatal("expected shutdown to close the connection pool")
 		}
 	})

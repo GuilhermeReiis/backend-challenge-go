@@ -51,8 +51,7 @@ func (t *Transaction) validateTransition(now time.Time) error {
 }
 
 func (t *Transaction) AwaitReference(now time.Time) error {
-	err := t.validateTransition(now)
-	if err != nil {
+	if err := t.validateTransition(now); err != nil {
 		return err
 	}
 
@@ -71,13 +70,11 @@ func (t *Transaction) Process(
 	referenceTransactionID string,
 	now time.Time,
 ) error {
-	err := t.validateTransition(now)
-	if err != nil {
+	if err := t.validateTransition(now); err != nil {
 		return err
 	}
 
-	_, err = t.amount.Compare(balance)
-	if err != nil {
+	if _, err := t.amount.Compare(balance); err != nil {
 		return err
 	}
 
@@ -103,8 +100,7 @@ func (t *Transaction) Process(
 }
 
 func (t *Transaction) Reject(failureCode string, now time.Time) error {
-	err := t.validateTransition(now)
-	if err != nil {
+	if err := t.validateTransition(now); err != nil {
 		return err
 	}
 
@@ -120,8 +116,7 @@ func (t *Transaction) Reject(failureCode string, now time.Time) error {
 }
 
 func (t *Transaction) Fail(failureCode string, now time.Time) error {
-	err := t.validateTransition(now)
-	if err != nil {
+	if err := t.validateTransition(now); err != nil {
 		return err
 	}
 

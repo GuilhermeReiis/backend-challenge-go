@@ -14,6 +14,7 @@ func validInput(t *testing.T) wager.ExternalInput {
 	t.Helper()
 
 	amount, err := money.Parse("25.00", "BRL")
+
 	if err != nil {
 		t.Fatalf("unexpected money error: %v", err)
 	}
@@ -51,9 +52,11 @@ func TestTransitionTimestamps(t *testing.T) {
 			name: "process",
 			apply: func(value *wager.Transaction, now time.Time) error {
 				balance, err := money.Parse("100.00", "BRL")
+
 				if err != nil {
 					return err
 				}
+
 				return value.Process(balance, "internal-bet-1", now)
 			},
 			status: wager.Processed,
@@ -99,14 +102,13 @@ func TestTransitionTimestamps(t *testing.T) {
 					input.ReferenceExternalTransactionID = "bet-1"
 					value := newTransaction(t, input, createdAt)
 
-					err := value.AwaitReference(updatedAt)
-					if err != nil {
+					if err := value.AwaitReference(updatedAt); err != nil {
 						t.Fatal(err)
 					}
+
 					before := *value
 
-					err = transition.apply(value, tc.now)
-					if !errors.Is(err, tc.wantErr) {
+					if err := transition.apply(value, tc.now); !errors.Is(err, tc.wantErr) {
 						t.Fatalf("expected error %v, got: %v", tc.wantErr, err)
 					}
 
@@ -114,6 +116,7 @@ func TestTransitionTimestamps(t *testing.T) {
 						if *value != before {
 							t.Error("expected rejected transition to preserve the complete state")
 						}
+
 						return
 					}
 
@@ -161,12 +164,15 @@ func TestNewExternal(t *testing.T) {
 				input.ReferenceExternalTransactionID = tc.reference
 
 				amount, err := money.New(tc.amount, "BRL")
+
 				if err != nil {
 					t.Fatalf("unexpected money error: %v", err)
 				}
+
 				input.Money = amount
 
 				value, err := wager.NewExternal(input, now)
+
 				if err != nil {
 					t.Fatalf("unexpected error: %v", err)
 				}
@@ -257,13 +263,14 @@ func TestNewExternal(t *testing.T) {
 				input.ReferenceExternalTransactionID = tc.reference
 
 				amount, err := money.New(tc.amount, "BRL")
+
 				if err != nil {
 					t.Fatalf("unexpected money error: %v", err)
 				}
+
 				input.Money = amount
 
-				_, err = wager.NewExternal(input, now)
-				if !errors.Is(err, tc.wantErr) {
+				if _, err := wager.NewExternal(input, now); !errors.Is(err, tc.wantErr) {
 					t.Fatalf("expected error %v, got: %v", tc.wantErr, err)
 				}
 			})
@@ -279,6 +286,7 @@ func TestProcess(t *testing.T) {
 		value := newTransaction(t, validInput(t), createdAt)
 
 		balance, err := money.Parse("75.00", "BRL")
+
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -292,6 +300,7 @@ func TestProcess(t *testing.T) {
 		}
 
 		result, available := value.ResultBalance()
+
 		if !available || result.Amount() != 7500 {
 			t.Error("expected original processing balance")
 		}
@@ -321,6 +330,7 @@ func TestAwaitReference(t *testing.T) {
 		}
 
 		balance, err := money.Parse("100.00", "BRL")
+
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -368,8 +378,7 @@ func TestTerminalStates(t *testing.T) {
 				t.Fatalf("unexpected error: %v", err)
 			}
 
-			err := value.Reject("OTHER_REASON", finishedAt.Add(time.Minute))
-			if !errors.Is(err, wager.ErrTerminalState) {
+			if err := value.Reject("OTHER_REASON", finishedAt.Add(time.Minute)); !errors.Is(err, wager.ErrTerminalState) {
 				t.Fatalf("expected terminal state error, got: %v", err)
 			}
 
@@ -389,6 +398,7 @@ func TestNewOpening(t *testing.T) {
 
 	t.Run("creates an internal opening without external metadata", func(t *testing.T) {
 		amount, err := money.Parse("100.00", "BRL")
+
 		if err != nil {
 			t.Fatalf("unexpected money error: %v", err)
 		}
@@ -399,6 +409,7 @@ func TestNewOpening(t *testing.T) {
 			PlayerID: "player-1",
 			Money:    amount,
 		}, now)
+
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -437,6 +448,7 @@ func TestNewOpening(t *testing.T) {
 		}
 
 		result, available := value.ResultBalance()
+
 		if !available || result.Amount() != 10000 {
 			t.Error("expected opening balance of 10000")
 		}
@@ -454,18 +466,17 @@ func TestNewOpening(t *testing.T) {
 		for _, tc := range cases {
 			t.Run(tc.name, func(t *testing.T) {
 				amount, err := money.New(tc.amount, "BRL")
+
 				if err != nil {
 					t.Fatalf("unexpected money error: %v", err)
 				}
 
-				_, err = wager.NewOpening(wager.OpeningInput{
+				if _, err := wager.NewOpening(wager.OpeningInput{
 					ID:       "opening-1",
 					WalletID: "wallet-1",
 					PlayerID: "player-1",
 					Money:    amount,
-				}, now)
-
-				if !errors.Is(err, wager.ErrInvalidAmount) {
+				}, now); !errors.Is(err, wager.ErrInvalidAmount) {
 					t.Fatalf("expected invalid amount error, got: %v", err)
 				}
 			})
@@ -477,6 +488,7 @@ func newTransaction(t *testing.T, input wager.ExternalInput, now time.Time) *wag
 	t.Helper()
 
 	value, err := wager.NewExternal(input, now)
+
 	if err != nil {
 		t.Fatalf("failed to create transaction: %v", err)
 	}

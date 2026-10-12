@@ -32,11 +32,13 @@ func validateState(
 	}
 
 	zero, err := money.Zero(balance.Currency())
+
 	if err != nil {
 		return err
 	}
 
 	comparison, err := balance.Compare(zero)
+
 	if err != nil {
 		return err
 	}
@@ -53,10 +55,9 @@ func (w *Wallet) validateMovement(amount money.Money, now time.Time) error {
 		return ErrInvalidWallet
 	}
 
-	err := validateState(
+	if err := validateState(
 		w.id, w.playerID, w.balance, w.version, w.createdAt, w.updatedAt,
-	)
-	if err != nil {
+	); err != nil {
 		return err
 	}
 
@@ -64,8 +65,7 @@ func (w *Wallet) validateMovement(amount money.Money, now time.Time) error {
 		return ErrInvalidTime
 	}
 
-	_, err = w.balance.Compare(amount)
-	if err != nil {
+	if _, err := w.balance.Compare(amount); err != nil {
 		return err
 	}
 

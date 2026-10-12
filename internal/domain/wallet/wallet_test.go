@@ -14,6 +14,7 @@ func newMoney(t *testing.T, amount int64, currency string) money.Money {
 	t.Helper()
 
 	value, err := money.New(amount, currency)
+
 	if err != nil {
 		t.Fatalf("failed to create test money: %v", err)
 	}
@@ -57,18 +58,18 @@ func TestMovementTimestamps(t *testing.T) {
 					value, err := wallet.New(
 						"wallet-1", "player-1", newMoney(t, 10000, "BRL"), createdAt,
 					)
+
 					if err != nil {
 						t.Fatal(err)
 					}
 
-					err = value.Credit(amount, updatedAt)
-					if err != nil {
+					if err := value.Credit(amount, updatedAt); err != nil {
 						t.Fatal(err)
 					}
+
 					before := *value
 
-					err = movement.apply(value, amount, tc.now)
-					if !errors.Is(err, tc.wantErr) {
+					if err := movement.apply(value, amount, tc.now); !errors.Is(err, tc.wantErr) {
 						t.Fatalf("expected error %v, got: %v", tc.wantErr, err)
 					}
 
@@ -76,6 +77,7 @@ func TestMovementTimestamps(t *testing.T) {
 						if *value != before {
 							t.Error("expected rejected movement to preserve the complete state")
 						}
+
 						return
 					}
 
@@ -94,11 +96,13 @@ func TestNew(t *testing.T) {
 
 	t.Run("creates wallet with initial version and timestamps", func(t *testing.T) {
 		balance, err := money.Parse("100.00", "BRL")
+
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
 		value, err := wallet.New("wallet-1", "player-1", balance, now)
+
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -130,11 +134,13 @@ func TestNew(t *testing.T) {
 
 	t.Run("accepts zero initial balance", func(t *testing.T) {
 		balance, err := money.Zero("BRL")
+
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
 		value, err := wallet.New("wallet-1", "player-1", balance, now)
+
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -146,11 +152,13 @@ func TestNew(t *testing.T) {
 
 	t.Run("rejects invalid creation data", func(t *testing.T) {
 		validBalance, err := money.Zero("BRL")
+
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
 		negativeBalance, err := money.New(-100, "BRL")
+
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -203,9 +211,7 @@ func TestNew(t *testing.T) {
 
 		for _, tc := range cases {
 			t.Run(tc.name, func(t *testing.T) {
-				_, err := wallet.New(tc.id, tc.playerID, tc.balance, tc.now)
-
-				if !errors.Is(err, tc.wantErr) {
+				if _, err := wallet.New(tc.id, tc.playerID, tc.balance, tc.now); !errors.Is(err, tc.wantErr) {
 					t.Fatalf("expected error %v, got: %v", tc.wantErr, err)
 				}
 			})
@@ -223,6 +229,7 @@ func TestRehydrate(t *testing.T) {
 		value, err := wallet.Rehydrate(
 			"wallet-1", "player-1", balance, 8, createdAt, updatedAt,
 		)
+
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -297,16 +304,14 @@ func TestRehydrate(t *testing.T) {
 
 		for _, tc := range cases {
 			t.Run(tc.name, func(t *testing.T) {
-				_, err := wallet.Rehydrate(
+				if _, err := wallet.Rehydrate(
 					"wallet-1",
 					"player-1",
 					tc.balance,
 					tc.version,
 					createdAt,
 					tc.updatedAt,
-				)
-
-				if !errors.Is(err, tc.wantErr) {
+				); !errors.Is(err, tc.wantErr) {
 					t.Fatalf("expected error %v, got: %v", tc.wantErr, err)
 				}
 			})
@@ -322,12 +327,12 @@ func TestCredit(t *testing.T) {
 		value, err := wallet.New(
 			"wallet-1", "player-1", newMoney(t, 10000, "BRL"), createdAt,
 		)
+
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		err = value.Credit(newMoney(t, 2500, "BRL"), movementAt)
-		if err != nil {
+		if err := value.Credit(newMoney(t, 2500, "BRL"), movementAt); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
@@ -352,12 +357,12 @@ func TestCredit(t *testing.T) {
 		createdAt := time.Date(2026, 10, 11, 12, 0, 0, 0, time.UTC)
 		balance := newMoney(t, 10000, "BRL")
 		value, err := wallet.New("wallet-1", "player-1", balance, createdAt)
+
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		err = value.Credit(newMoney(t, 0, "BRL"), createdAt.Add(time.Minute))
-		if err != nil {
+		if err := value.Credit(newMoney(t, 0, "BRL"), createdAt.Add(time.Minute)); err != nil {
 			t.Fatal(err)
 		}
 
@@ -430,12 +435,12 @@ func TestCredit(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				balance := newMoney(t, tc.balance, "BRL")
 				value, err := wallet.New("wallet-1", "player-1", balance, createdAt)
+
 				if err != nil {
 					t.Fatal(err)
 				}
 
-				err = value.Credit(tc.amount, tc.now)
-				if !errors.Is(err, tc.wantErr) {
+				if err := value.Credit(tc.amount, tc.now); !errors.Is(err, tc.wantErr) {
 					t.Fatalf("expected error %v, got: %v", tc.wantErr, err)
 				}
 
@@ -475,12 +480,12 @@ func TestMovementVersionLimit(t *testing.T) {
 				"wallet-1", "player-1", newMoney(t, 10000, "BRL"),
 				math.MaxInt64-1, createdAt, createdAt,
 			)
+
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			err = tc.apply(value, newMoney(t, 1, "BRL"), movementAt)
-			if err != nil {
+			if err := tc.apply(value, newMoney(t, 1, "BRL"), movementAt); err != nil {
 				t.Fatal(err)
 			}
 
@@ -489,8 +494,8 @@ func TestMovementVersionLimit(t *testing.T) {
 			}
 
 			balance := value.Balance()
-			err = tc.apply(value, newMoney(t, 1, "BRL"), movementAt.Add(time.Minute))
-			if !errors.Is(err, wallet.ErrVersionOverflow) {
+
+			if err := tc.apply(value, newMoney(t, 1, "BRL"), movementAt.Add(time.Minute)); !errors.Is(err, wallet.ErrVersionOverflow) {
 				t.Fatalf("expected version overflow error, got: %v", err)
 			}
 
@@ -499,8 +504,7 @@ func TestMovementVersionLimit(t *testing.T) {
 				t.Error("expected state to remain unchanged after version overflow")
 			}
 
-			err = tc.apply(value, newMoney(t, 0, "BRL"), movementAt.Add(2*time.Minute))
-			if err != nil {
+			if err := tc.apply(value, newMoney(t, 0, "BRL"), movementAt.Add(2*time.Minute)); err != nil {
 				t.Fatal(err)
 			}
 
@@ -564,12 +568,12 @@ func TestDebit(t *testing.T) {
 			value, err := wallet.New(
 				"wallet-1", "player-1", newMoney(t, 10000, "BRL"), createdAt,
 			)
+
 			if err != nil {
 				t.Fatalf("unexpected creation error: %v", err)
 			}
 
-			err = value.Debit(newMoney(t, tc.amount, tc.currency), movementAt)
-			if !errors.Is(err, tc.wantErr) {
+			if err := value.Debit(newMoney(t, tc.amount, tc.currency), movementAt); !errors.Is(err, tc.wantErr) {
 				t.Fatalf("expected error %v, got: %v", tc.wantErr, err)
 			}
 
@@ -584,6 +588,7 @@ func TestDebit(t *testing.T) {
 			}
 
 			wantUpdatedAt := createdAt
+
 			if tc.wantVersion == 2 {
 				wantUpdatedAt = movementAt
 			}

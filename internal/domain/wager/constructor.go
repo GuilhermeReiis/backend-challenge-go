@@ -56,15 +56,13 @@ func NewExternal(input ExternalInput, now time.Time) (*Transaction, error) {
 		return nil, ErrInvalidKind
 	}
 
-	err := validateAmount(input.Kind, input.Money)
-	if err != nil {
+	if err := validateAmount(input.Kind, input.Money); err != nil {
 		return nil, err
 	}
 
 	reference := input.ReferenceExternalTransactionID
 
-	err = validateExternalReference(input.Kind, reference)
-	if err != nil {
+	if err := validateExternalReference(input.Kind, reference); err != nil {
 		return nil, err
 	}
 
@@ -99,8 +97,7 @@ func NewOpening(input OpeningInput, now time.Time) (*Transaction, error) {
 		return nil, ErrInvalidTime
 	}
 
-	err := validateAmount(Opening, input.Money)
-	if err != nil {
+	if err := validateAmount(Opening, input.Money); err != nil {
 		return nil, err
 	}
 

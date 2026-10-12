@@ -19,20 +19,23 @@ func OutboxToModel(value service.OutboxEvent) (models.Outbox, error) {
 		OccurredAt    time.Time       `json:"occurredAt"`
 		Data          json.RawMessage `json:"data"`
 	}
-	err := json.Unmarshal(value.Payload, &envelope)
-	if err != nil {
+
+	if err := json.Unmarshal(value.Payload, &envelope); err != nil {
 		return models.Outbox{}, event.ErrInvalidData
 	}
+
 	if envelope.EventID != value.EventID || envelope.AggregateID != value.AggregateID ||
 		envelope.EventType != value.EventType || envelope.Version != value.Version ||
 		envelope.CorrelationID != value.CorrelationID || !envelope.OccurredAt.Equal(value.OccurredAt) || value.OccurredAt.IsZero() {
 		return models.Outbox{}, event.ErrInvalidMetadata
 	}
+
 	var data map[string]json.RawMessage
-	err = json.Unmarshal(envelope.Data, &data)
-	if err != nil || data == nil {
+
+	if err := json.Unmarshal(envelope.Data, &data); err != nil || data == nil {
 		return models.Outbox{}, event.ErrInvalidData
 	}
+
 	return models.Outbox{
 		EventID: value.EventID, AggregateID: value.AggregateID, EventType: value.EventType,
 		EventVersion: value.Version, CorrelationID: value.CorrelationID,

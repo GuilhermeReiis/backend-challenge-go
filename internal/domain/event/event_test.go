@@ -22,6 +22,7 @@ func newPendingTransaction(
 	t.Helper()
 
 	amount, err := money.Parse("25.00", "BRL")
+
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -40,6 +41,7 @@ func newPendingTransaction(
 		Money:                          amount,
 		ReferenceExternalTransactionID: reference,
 	}, now)
+
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -58,17 +60,18 @@ func TestNewRejected(t *testing.T) {
 	t.Run("includes the rejection reason", func(t *testing.T) {
 		transaction := newPendingTransaction(t, wager.Bet, "", now)
 
-		err := transaction.Reject("INSUFFICIENT_FUNDS", now)
-		if err != nil {
+		if err := transaction.Reject("INSUFFICIENT_FUNDS", now); err != nil {
 			t.Fatal(err)
 		}
 
 		value, err := event.NewRejected(metadata, transaction)
+
 		if err != nil {
 			t.Fatal(err)
 		}
 
 		result, err := json.Marshal(value)
+
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -81,8 +84,7 @@ func TestNewRejected(t *testing.T) {
 			} `json:"data"`
 		}
 
-		err = json.Unmarshal(result, &decoded)
-		if err != nil {
+		if err := json.Unmarshal(result, &decoded); err != nil {
 			t.Fatal(err)
 		}
 
@@ -96,8 +98,7 @@ func TestNewRejected(t *testing.T) {
 	t.Run("rejects a pending transaction", func(t *testing.T) {
 		transaction := newPendingTransaction(t, wager.Bet, "", now)
 
-		_, err := event.NewRejected(metadata, transaction)
-		if !errors.Is(err, event.ErrInvalidData) {
+		if _, err := event.NewRejected(metadata, transaction); !errors.Is(err, event.ErrInvalidData) {
 			t.Fatalf("expected invalid data error, got: %v", err)
 		}
 	})
@@ -114,17 +115,18 @@ func TestNewPendingReference(t *testing.T) {
 	t.Run("includes the awaited reference", func(t *testing.T) {
 		transaction := newPendingTransaction(t, wager.Refund, "bet-1", now)
 
-		err := transaction.AwaitReference(now)
-		if err != nil {
+		if err := transaction.AwaitReference(now); err != nil {
 			t.Fatal(err)
 		}
 
 		value, err := event.NewPendingReference(metadata, transaction)
+
 		if err != nil {
 			t.Fatal(err)
 		}
 
 		result, err := json.Marshal(value)
+
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -136,8 +138,7 @@ func TestNewPendingReference(t *testing.T) {
 			} `json:"data"`
 		}
 
-		err = json.Unmarshal(result, &decoded)
-		if err != nil {
+		if err := json.Unmarshal(result, &decoded); err != nil {
 			t.Fatal(err)
 		}
 
@@ -150,8 +151,7 @@ func TestNewPendingReference(t *testing.T) {
 	t.Run("rejects an ordinary pending transaction", func(t *testing.T) {
 		transaction := newPendingTransaction(t, wager.Refund, "bet-1", now)
 
-		_, err := event.NewPendingReference(metadata, transaction)
-		if !errors.Is(err, event.ErrInvalidData) {
+		if _, err := event.NewPendingReference(metadata, transaction); !errors.Is(err, event.ErrInvalidData) {
 			t.Fatalf("expected invalid data error, got: %v", err)
 		}
 	})
@@ -167,16 +167,19 @@ func TestNewBalanceChanged(t *testing.T) {
 
 	t.Run("includes the ledger movement and wallet version", func(t *testing.T) {
 		before, err := money.Parse("100.00", "BRL")
+
 		if err != nil {
 			t.Fatal(err)
 		}
 
 		amount, err := money.Parse("25.00", "BRL")
+
 		if err != nil {
 			t.Fatal(err)
 		}
 
 		after, err := before.Sub(amount)
+
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -185,16 +188,19 @@ func TestNewBalanceChanged(t *testing.T) {
 			"entry-1", "wallet-1", "transaction-1",
 			ledger.Debit, amount, before, after, now,
 		)
+
 		if err != nil {
 			t.Fatal(err)
 		}
 
 		value, err := event.NewBalanceChanged(metadata, entry, 2)
+
 		if err != nil {
 			t.Fatal(err)
 		}
 
 		result, err := json.Marshal(value)
+
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -211,15 +217,13 @@ func TestNewBalanceChanged(t *testing.T) {
 			t.Errorf("expected %s, got %s", expected, result)
 		}
 
-		_, err = event.NewBalanceChanged(metadata, entry, 0)
-		if !errors.Is(err, event.ErrInvalidData) {
+		if _, err := event.NewBalanceChanged(metadata, entry, 0); !errors.Is(err, event.ErrInvalidData) {
 			t.Fatalf("expected invalid version rejection, got: %v", err)
 		}
 	})
 
 	t.Run("rejects an uninitialized ledger entry", func(t *testing.T) {
-		_, err := event.NewBalanceChanged(metadata, ledger.Entry{}, 1)
-		if !errors.Is(err, event.ErrInvalidData) {
+		if _, err := event.NewBalanceChanged(metadata, ledger.Entry{}, 1); !errors.Is(err, event.ErrInvalidData) {
 			t.Fatalf("expected invalid data error, got: %v", err)
 		}
 	})

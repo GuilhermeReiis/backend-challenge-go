@@ -12,8 +12,7 @@ func New(
 	initialBalance money.Money,
 	now time.Time,
 ) (*Wallet, error) {
-	err := validateState(id, playerID, initialBalance, 1, now, now)
-	if err != nil {
+	if err := validateState(id, playerID, initialBalance, 1, now, now); err != nil {
 		return nil, err
 	}
 

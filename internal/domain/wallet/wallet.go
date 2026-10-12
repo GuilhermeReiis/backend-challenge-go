@@ -45,8 +45,7 @@ func (w *Wallet) UpdatedAt() time.Time {
 }
 
 func (w *Wallet) Credit(amount money.Money, now time.Time) error {
-	err := w.validateMovement(amount, now)
-	if err != nil {
+	if err := w.validateMovement(amount, now); err != nil {
 		return err
 	}
 
@@ -59,6 +58,7 @@ func (w *Wallet) Credit(amount money.Money, now time.Time) error {
 	}
 
 	newBalance, err := w.balance.Add(amount)
+
 	if err != nil {
 		return err
 	}
@@ -71,8 +71,7 @@ func (w *Wallet) Credit(amount money.Money, now time.Time) error {
 }
 
 func (w *Wallet) Debit(amount money.Money, now time.Time) error {
-	err := w.validateMovement(amount, now)
-	if err != nil {
+	if err := w.validateMovement(amount, now); err != nil {
 		return err
 	}
 
@@ -81,6 +80,7 @@ func (w *Wallet) Debit(amount money.Money, now time.Time) error {
 	}
 
 	comparison, err := w.balance.Compare(amount)
+
 	if err != nil {
 		return err
 	}
@@ -94,6 +94,7 @@ func (w *Wallet) Debit(amount money.Money, now time.Time) error {
 	}
 
 	newBalance, err := w.balance.Sub(amount)
+
 	if err != nil {
 		return err
 	}

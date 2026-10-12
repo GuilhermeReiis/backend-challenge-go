@@ -24,6 +24,7 @@ func TestLoad(t *testing.T) {
 		t.Setenv("POSTGRES_PASSWORD", "admin-only")
 
 		cfg, err := config.Load()
+
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -44,8 +45,7 @@ func TestLoad(t *testing.T) {
 				setValidEnvironment(t)
 				t.Setenv(name, "")
 
-				_, err := config.Load()
-				if err == nil || !strings.Contains(err.Error(), name) {
+				if _, err := config.Load(); err == nil || !strings.Contains(err.Error(), name) {
 					t.Fatal("expected error identifying the missing variable")
 				}
 			})
@@ -58,8 +58,7 @@ func TestLoad(t *testing.T) {
 				setValidEnvironment(t)
 				t.Setenv("APP_DB_PORT", port)
 
-				_, err := config.Load()
-				if err == nil || err.Error() != "config: APP_DB_PORT must be between 1 and 65535" {
+				if _, err := config.Load(); err == nil || err.Error() != "config: APP_DB_PORT must be between 1 and 65535" {
 					t.Fatal("expected a configuration error without the supplied value")
 				}
 			})
@@ -70,8 +69,7 @@ func TestLoad(t *testing.T) {
 		setValidEnvironment(t)
 		t.Setenv("APP_DB_SSLMODE", "invalid")
 
-		_, err := config.Load()
-		if err == nil || err.Error() != "config: invalid APP_DB_SSLMODE" {
+		if _, err := config.Load(); err == nil || err.Error() != "config: invalid APP_DB_SSLMODE" {
 			t.Fatal("expected invalid ssl mode error")
 		}
 	})

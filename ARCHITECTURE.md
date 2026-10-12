@@ -78,7 +78,8 @@ Essas garantias de coordenação ainda precisam ser implementadas e demonstradas
 - Services coordenam operações; regras das entidades permanecem no domínio.
 - Interfaces expressam operações específicas, evitando um repository CRUD genérico.
 - Erros são classificáveis; conversão em status HTTP pertence ao transporte.
-- Chamadas que retornam erro ficam separadas de `if err != nil`, com retorno antecipado.
+- Blocos `if` usam corpo em múltiplas linhas e são separados dos comandos anteriores e seguintes por uma linha em branco, quando houver outros comandos no mesmo bloco.
+- Chamadas cujo erro é tratado imediatamente e cujas variáveis só são necessárias no próprio `if` usam inicialização na condição, como `if err := t.validateTransition(now); err != nil {`. Quando outros valores retornados são necessários depois do `if`, eles permanecem no escopo adequado. Erros são tratados com retorno antecipado.
 - Helpers de validação pertencem ao pacote da entidade e são compartilhados quando a regra é a mesma.
 - Model, mapper e repository de cada entidade ficam próximos no pacote PostgreSQL.
 - Novos arquivos são criados quando existe uma responsabilidade concreta a implementar.

@@ -25,6 +25,7 @@ func NewProcessed(
 	}
 
 	balance, available := transaction.ResultBalance()
+
 	if !available {
 		return Envelope[ProcessedData]{}, ErrInvalidData
 	}
