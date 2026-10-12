@@ -464,3 +464,25 @@ go vet ./...
 Documente separadamente como preparar as dependências dos testes e executar integração, múltiplas instâncias e simulações de falha. Se utilizar build tags, informe os comandos correspondentes.
 
 Entregue código formatado com `gofmt` e dependências reproduzíveis.
+
+## Convenção de testes da solução
+
+Adotamos **subtestes (`t.Run`) combinados com testes orientados por tabela (table-driven tests)**, usando o pacote nativo `testing`.
+
+- Uma função de teste agrupa os cenários de uma operação: `TestNew`, `TestParse`, `TestAdd`.
+- Cada cenário é identificado por um nome descritivo em `t.Run`, incluindo casos de sucesso e de erro.
+- Quando os cenários compartilham a mesma lógica de verificação, uma tabela reúne o nome, as entradas e os resultados esperados; cada linha é executada como um subteste.
+- Use `t.Fatalf` quando a falha impedir as verificações seguintes e `t.Errorf` quando as demais verificações puderem continuar.
+
+Exemplo de organização:
+
+```text
+TestParse
+├── converts decimal amount to minor units
+└── rejects invalid amounts
+    ├── empty amount
+    ├── negative amount
+    └── overflow
+```
+
+Referência: [Subtests e table-driven tests no blog oficial de Go](https://go.dev/blog/subtests).
