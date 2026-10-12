@@ -21,6 +21,74 @@ func newMoney(t *testing.T, amount int64, currency string) money.Money {
 	return value
 }
 
+func TestMovementTimestamps(t *testing.T) {
+	createdAt := time.Date(2026, 10, 12, 12, 0, 0, 0, time.UTC)
+	updatedAt := createdAt.Add(2 * time.Hour)
+	amount := newMoney(t, 100, "BRL")
+
+	movements := []struct {
+		name  string
+		apply func(*wallet.Wallet, money.Money, time.Time) error
+	}{
+		{name: "credit", apply: (*wallet.Wallet).Credit},
+		{name: "debit", apply: (*wallet.Wallet).Debit},
+	}
+
+	for _, movement := range movements {
+		t.Run(movement.name, func(t *testing.T) {
+			cases := []struct {
+				name    string
+				now     time.Time
+				wantErr error
+			}{
+				{
+					name:    "rejects time before the last update",
+					now:     createdAt.Add(time.Hour),
+					wantErr: wallet.ErrInvalidTime,
+				},
+				{
+					name: "accepts time equal to the last update",
+					now:  updatedAt,
+				},
+			}
+
+			for _, tc := range cases {
+				t.Run(tc.name, func(t *testing.T) {
+					value, err := wallet.New(
+						"wallet-1", "player-1", newMoney(t, 10000, "BRL"), createdAt,
+					)
+					if err != nil {
+						t.Fatal(err)
+					}
+
+					err = value.Credit(amount, updatedAt)
+					if err != nil {
+						t.Fatal(err)
+					}
+					before := *value
+
+					err = movement.apply(value, amount, tc.now)
+					if !errors.Is(err, tc.wantErr) {
+						t.Fatalf("expected error %v, got: %v", tc.wantErr, err)
+					}
+
+					if tc.wantErr != nil {
+						if *value != before {
+							t.Error("expected rejected movement to preserve the complete state")
+						}
+						return
+					}
+
+					if value.Version() != before.Version()+1 ||
+						!value.UpdatedAt().Equal(updatedAt) {
+						t.Error("expected movement to increment the version and preserve the accepted timestamp")
+					}
+				})
+			}
+		})
+	}
+}
+
 func TestNew(t *testing.T) {
 	now := time.Date(2026, 10, 11, 12, 0, 0, 0, time.UTC)
 

@@ -465,6 +465,44 @@ Documente separadamente como preparar as dependências dos testes e executar int
 
 Entregue código formatado com `gofmt` e dependências reproduzíveis.
 
+## Organização da solução
+
+A organização do código existente e a direção de Service/Repository com GORM, Echo e Uber Fx estão descritas em [ARCHITECTURE.md](ARCHITECTURE.md). O documento identifica as camadas implementadas e as que ainda serão desenvolvidas.
+
+## Configuração e conexão PostgreSQL
+
+Copie `.env.example` para `.env` e preencha `POSTGRES_PASSWORD` e `APP_DB_PASSWORD` com senhas diferentes. O arquivo `.env` é ignorado pelo Git. As credenciais administrativas são usadas pelo Docker e pelas migrations; a aplicação usa `APP_DB_USER=wagering_app` e `APP_DB_PASSWORD`.
+
+`POSTGRES_PORT` define a porta publicada pelo Docker. `APP_DB_HOST` e `APP_DB_PORT` definem o endereço usado pela aplicação: localmente, `127.0.0.1:15432`. `POSTGRES_DB` define o banco e `APP_DB_SSLMODE` controla TLS; `disable` no exemplo corresponde ao ambiente local. Variáveis já definidas no processo têm precedência sobre `.env`.
+
+Para um banco novo:
+
+```powershell
+docker compose up -d postgres
+docker compose run --rm migrate up
+```
+
+O usuário da aplicação é criado na primeira inicialização do volume PostgreSQL. Alterar senhas no `.env` não atualiza automaticamente as credenciais de um banco já inicializado.
+
+A conexão GORM limita o pool a 10 conexões abertas e 5 ociosas. Fx verifica a conexão no startup, com prazo de 5 segundos, e fecha o pool no shutdown. As migrations permanecem explícitas, sem `AutoMigrate`.
+
+Testes unitários:
+
+```powershell
+go test ./...
+go vet ./...
+```
+
+Com PostgreSQL iniciado e credenciais configuradas, os testes de integração verificam a conexão, o fechamento do pool, os repositories, commit/rollback e locks por carteira:
+
+```powershell
+go test -tags=integration ./internal/repository/postgres/... -count=1
+```
+
+Os testes dos repositories usam `POSTGRES_USER` e `POSTGRES_PASSWORD` somente para criar um banco temporário `wagering_test_*`, aplicar as migrations e removê-lo ao terminar. As operações testadas usam `wagering_app`. O banco da aplicação não é usado para gravar os dados desses testes. Não execute essa suíte contra um servidor de produção.
+
+Esta etapa ainda não possui servidor HTTP ou comando de inicialização da aplicação.
+
 ## Convenção de testes da solução
 
 Adotamos **subtestes (`t.Run`) combinados com testes orientados por tabela (table-driven tests)**, usando o pacote nativo `testing`.

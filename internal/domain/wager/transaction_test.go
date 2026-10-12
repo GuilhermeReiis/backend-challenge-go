@@ -33,6 +33,100 @@ func validInput(t *testing.T) wager.ExternalInput {
 	}
 }
 
+func TestTransitionTimestamps(t *testing.T) {
+	createdAt := time.Date(2026, 10, 12, 12, 0, 0, 0, time.UTC)
+	updatedAt := createdAt.Add(2 * time.Hour)
+
+	transitions := []struct {
+		name   string
+		apply  func(*wager.Transaction, time.Time) error
+		status wager.Status
+	}{
+		{
+			name:   "await reference",
+			apply:  (*wager.Transaction).AwaitReference,
+			status: wager.PendingReference,
+		},
+		{
+			name: "process",
+			apply: func(value *wager.Transaction, now time.Time) error {
+				balance, err := money.Parse("100.00", "BRL")
+				if err != nil {
+					return err
+				}
+				return value.Process(balance, "internal-bet-1", now)
+			},
+			status: wager.Processed,
+		},
+		{
+			name: "reject",
+			apply: func(value *wager.Transaction, now time.Time) error {
+				return value.Reject("REFERENCE_NOT_FOUND", now)
+			},
+			status: wager.Rejected,
+		},
+		{
+			name: "fail",
+			apply: func(value *wager.Transaction, now time.Time) error {
+				return value.Fail("PERMANENT_INFRASTRUCTURE_FAILURE", now)
+			},
+			status: wager.Failed,
+		},
+	}
+
+	for _, transition := range transitions {
+		t.Run(transition.name, func(t *testing.T) {
+			cases := []struct {
+				name    string
+				now     time.Time
+				wantErr error
+			}{
+				{
+					name:    "rejects time before the last update",
+					now:     createdAt.Add(time.Hour),
+					wantErr: wager.ErrInvalidTime,
+				},
+				{
+					name: "accepts time equal to the last update",
+					now:  updatedAt,
+				},
+			}
+
+			for _, tc := range cases {
+				t.Run(tc.name, func(t *testing.T) {
+					input := validInput(t)
+					input.Kind = wager.Refund
+					input.ReferenceExternalTransactionID = "bet-1"
+					value := newTransaction(t, input, createdAt)
+
+					err := value.AwaitReference(updatedAt)
+					if err != nil {
+						t.Fatal(err)
+					}
+					before := *value
+
+					err = transition.apply(value, tc.now)
+					if !errors.Is(err, tc.wantErr) {
+						t.Fatalf("expected error %v, got: %v", tc.wantErr, err)
+					}
+
+					if tc.wantErr != nil {
+						if *value != before {
+							t.Error("expected rejected transition to preserve the complete state")
+						}
+						return
+					}
+
+					if value.Status() != transition.status ||
+						!value.UpdatedAt().Equal(updatedAt) {
+						t.Error("expected transition to succeed with the accepted timestamp")
+					}
+				})
+			}
+		})
+	}
+}
+
 func TestNewExternal(t *testing.T) {
 	now := time.Date(2026, 10, 11, 12, 0, 0, 0, time.UTC)
 
